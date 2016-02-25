@@ -8,7 +8,15 @@
 #
 #   These are from the scripting documentation: https://github.com/github/hubot/blob/master/docs/scripting.md
 
+flip = require 'flip'
+
 module.exports = (robot) ->
+
+  robot.respond /http cat (.*)/i, (res) ->
+    res.send "https://http.cat/" + res.match[1];
+
+  robot.respond /http dog (.*)/i, (res) ->
+    res.send "http://httpstatusdogs.com/" + res.match[1];
 
   robot.hear /badger/i, (res) ->
     res.send "Badgers? BADGERS? WE DON'T NEED NO STINKIN BADGERS"
@@ -27,7 +35,8 @@ module.exports = (robot) ->
 
   robot.respond /score (.*)/i, (res) ->
     karma = robot.brain.get('karma-' + res.match[1]) || 0;
-    res.send "\'" + res.match[1] + "\'" + ' has ' + (karma) + ' points.';
+    console.log(karma);
+    res.send res.match[1] + ' has ' + (karma) + ' points.';
   
   robot.respond /open the (.*) doors/i, (res) ->
     doorType = res.match[1]
@@ -120,3 +129,60 @@ module.exports = (robot) ->
   robot.respond /sleep it off/i, (res) ->
     robot.brain.set 'totalSodas', 0
     res.reply 'zzzzz'
+
+  robot.respond /(rage )?flip( .*)?$/i, (msg) ->
+    if msg.match[1] == 'rage '
+      guy = '(ノಠ益ಠ)ノ彡'
+    else
+      guy = '(╯°□°）╯︵'
+
+    toFlip = (msg.match[2] || '').trim()
+
+    if toFlip == 'me'
+      toFlip = msg.message.user.name
+
+    if toFlip == ''
+      flipped = '┻━┻'
+    else
+      flipped = flip(toFlip)
+
+    msg.send "#{guy} #{flipped}"
+
+
+  robot.respond /unflip( .*)?$/i, (msg) ->
+    toUnflip = (msg.match[1] || '').trim()
+
+    if toUnflip == 'me'
+      unflipped = msg.message.user.name
+    else if toUnflip == ''
+      unflipped = '┬──┬'
+    else
+      unflipped = toUnflip
+
+    msg.send "#{unflipped} ノ( º _ ºノ)"
+
+  robot.hear /decisions\[(.*)\] \+\= (.*)/i, (msg) ->
+    key = msg.match[1]
+    value = msg.match[2]
+    existing_value = robot.brain.get key
+
+    output = null
+    if existing_value == null
+      output = value
+      robot.brain.set key, value + "\<\!\>"
+    else
+      output = existing_value + "\n" + value
+      robot.brain.set key, existing_value + "\<\!\>" + value
+
+    msg.send "Your decision has been added."
+
+  robot.hear /fetch decision (.*)/i, (msg) ->
+    key = msg.match[1]
+
+    if (robot.brain.get key) == null
+      msg.send "There are no decisions regarding *" + key + "*"
+    else
+      msg.send "*" + key + "*"
+      msg.send (robot.brain.get key).split("\<\!\>").join("\n")
+    
+
